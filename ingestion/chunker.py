@@ -45,7 +45,8 @@ class Chunker:
                     "chunk_index": index,
                     "character_count": len(chunk),
                     "token_count": token_count,
-                    "text": chunk
+                    "text": chunk,
+                    "context": ""
                 }
             )
 

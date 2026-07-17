@@ -5,6 +5,7 @@ from ingestion.metadata import MetadataExtractor
 from ingestion.chunker import Chunker
 from ingestion.keywords import KeywordExtractor
 from ingestion.embedder import Embedder
+from ingestion.qdrant_store import QdrantStore
 
 
 # ======================================================
@@ -45,7 +46,7 @@ def main():
 
     metadata = MetadataExtractor().extract(
         str(FILE_PATH),
-        document["text"]
+        document["text"],
     )
 
     print(metadata)
@@ -58,7 +59,7 @@ def main():
 
     chunker = Chunker(
         chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP
+        chunk_overlap=CHUNK_OVERLAP,
     )
 
     chunks = chunker.split(document["markdown"])
@@ -77,30 +78,57 @@ def main():
 
         chunk["keywords"] = keyword_extractor.extract(
             chunk["text"],
-            metadata["language"]
+            metadata["language"],
         )
 
     print("✓ Keywords Generated")
 
     # ======================================================
-    # STEP 5 : EMBEDDING GENERATION
+    # STEP 4.5 : Build Context
+    # ======================================================
+
+    print("\n========== STEP 4.5 : BUILD CONTEXT ==========\n")
+
+    for i, chunk in enumerate(chunks):
+
+        context = []
+
+        # Previous chunk keywords
+        if i > 0:
+            context.extend(chunks[i - 1]["keywords"][:3])
+
+        # Current chunk keywords
+        context.extend(chunk["keywords"])
+
+        chunk["context"] = ", ".join(context)
+
+    print("✓ Context Generated")
+
+    # ======================================================
+    # STEP 5 : Embedding Generation
     # ======================================================
 
     print("\n========== STEP 5 : EMBEDDING GENERATION ==========\n")
 
     embedder = Embedder()
 
-    texts = [chunk["text"] for chunk in chunks]
+    texts = [
+        f"Context: {chunk['context']}\n\n{chunk['text']}"
+        for chunk in chunks
+    ]
 
     embeddings = embedder.embed_batch(texts)
 
     for chunk, embedding in zip(chunks, embeddings):
+
         chunk["embedding"] = embedding
+
         print("=" * 100)
         print(f"Chunk Index        : {chunk['chunk_index']}")
         print(f"Characters         : {chunk['character_count']}")
         print(f"Tokens             : {chunk['token_count']}")
         print(f"Keywords           : {chunk['keywords']}")
+        print(f"Context            : {chunk['context']}")
         print("-" * 100)
         print("Chunk Text:\n")
         print(chunk["text"])
@@ -110,10 +138,47 @@ def main():
         print(embedding[:10])
         print("=" * 100)
         print()
-        
+
     print(f"Total Embeddings Generated : {len(embeddings)}")
-        
     print("\n✓ Embeddings Generated Successfully")
+
+    # ======================================================
+    # STEP 6 : Store in Qdrant
+    # ======================================================
+
+    print("\n========== STEP 6 : STORE IN QDRANT ==========\n")
+
+    store = QdrantStore()
+
+    if store.document_exists(metadata["document_hash"]):
+        print("✓ Document already indexed.")
+        return
+
+    points = []
+
+    for chunk in chunks:
+
+        payload = {
+            **metadata,
+            "chunk_index": chunk["chunk_index"],
+            "text": chunk["text"],
+            "context": chunk["context"],
+            "keywords": chunk["keywords"],
+            "character_count": chunk["character_count"],
+            "token_count": chunk["token_count"],
+        }
+
+        point = store.build_point(
+            embedding=chunk["embedding"],
+            payload=payload,
+        )
+
+        points.append(point)
+
+    store.insert_points(points)
+
+    print(f"✓ Total Points in Collection : {store.count_points()}")
+    print("\n✓ Pipeline Completed Successfully")
 
 
 if __name__ == "__main__":
