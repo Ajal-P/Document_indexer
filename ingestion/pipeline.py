@@ -4,6 +4,7 @@ from ingestion.loader import DocumentLoader
 from ingestion.metadata import MetadataExtractor
 from ingestion.chunker import Chunker
 from ingestion.keywords import KeywordExtractor
+from ingestion.embedder import Embedder
 
 
 # ======================================================
@@ -16,12 +17,6 @@ FILE_PATH = (
     BASE_DIR
     / "docs"
     / "Malayalam_article_1.docx"
-)
-
-OUTPUT_FILE = (
-    BASE_DIR
-    / "docs"
-    / "Malayalam_chunks.txt"
 )
 
 CHUNK_SIZE = 800
@@ -43,18 +38,10 @@ def main():
     print("✓ Document Loaded")
 
     # ======================================================
-    # STEP 2 : Markdown Preview
+    # STEP 2 : Generate Metadata
     # ======================================================
 
-    print("\n========== DOCUMENT MARKDOWN ==========\n")
-
-    print(document["markdown"])
-
-    # ======================================================
-    # STEP 3 : Generate Metadata
-    # ======================================================
-
-    print("\n========== STEP 3 : DOCUMENT METADATA ==========\n")
+    print("\n========== STEP 2 : DOCUMENT METADATA ==========\n")
 
     metadata = MetadataExtractor().extract(
         str(FILE_PATH),
@@ -64,10 +51,10 @@ def main():
     print(metadata)
 
     # ======================================================
-    # STEP 4 : Chunking
+    # STEP 3 : Chunking
     # ======================================================
 
-    print("\n========== STEP 4 : CHUNKING ==========\n")
+    print("\n========== STEP 3 : CHUNKING ==========\n")
 
     chunker = Chunker(
         chunk_size=CHUNK_SIZE,
@@ -79,53 +66,54 @@ def main():
     print(f"Total Chunks : {len(chunks)}")
 
     # ======================================================
-    # STEP 5 : Keyword Extraction
+    # STEP 4 : Keyword Extraction
     # ======================================================
 
-    print("\n========== STEP 5 : KEYWORDS ==========\n")
+    print("\n========== STEP 4 : KEYWORD EXTRACTION ==========\n")
 
     keyword_extractor = KeywordExtractor()
-    
+
+    for chunk in chunks:
+
+        chunk["keywords"] = keyword_extractor.extract(
+            chunk["text"],
+            metadata["language"]
+        )
+
+    print("✓ Keywords Generated")
 
     # ======================================================
-    # STEP 6 : Save Chunks to File
+    # STEP 5 : EMBEDDING GENERATION
     # ======================================================
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as file:
+    print("\n========== STEP 5 : EMBEDDING GENERATION ==========\n")
 
-        file.write("DOCUMENT METADATA\n")
-        file.write("=" * 80 + "\n")
-        file.write(str(metadata))
-        file.write("\n\n")
+    embedder = Embedder()
 
-        for chunk in chunks:
+    texts = [chunk["text"] for chunk in chunks]
 
-            keywords = keyword_extractor.extract(
-                chunk["text"],
-                metadata["language"]
-            )
+    embeddings = embedder.embed_batch(texts)
 
-            print("=" * 80)
-            print(f"Chunk : {chunk['chunk_index']}")
-            print(f"Characters : {chunk['character_count']}")
-            print(f"Tokens     : {chunk['token_count']}")
-            print(f"Keywords   : {keywords}")
-            print("=" * 80)
-            print(chunk["text"])
-            print()
-
-            file.write("=" * 80 + "\n")
-            file.write(f"Chunk : {chunk['chunk_index']}\n")
-            file.write(f"Characters : {chunk['character_count']}\n")
-            file.write(f"Tokens     : {chunk['token_count']}\n")
-            file.write(f"Keywords   : {keywords}\n")
-            file.write("-" * 80 + "\n")
-            file.write(chunk["text"])
-            file.write("\n\n")
-
-    print(f"\n✓ Chunks saved to:\n{OUTPUT_FILE}")
-
-    print("\n✓ Chunking & Keyword Extraction Completed Successfully")
+    for chunk, embedding in zip(chunks, embeddings):
+        chunk["embedding"] = embedding
+        print("=" * 100)
+        print(f"Chunk Index        : {chunk['chunk_index']}")
+        print(f"Characters         : {chunk['character_count']}")
+        print(f"Tokens             : {chunk['token_count']}")
+        print(f"Keywords           : {chunk['keywords']}")
+        print("-" * 100)
+        print("Chunk Text:\n")
+        print(chunk["text"])
+        print("-" * 100)
+        print(f"Embedding Dimension: {len(embedding)}")
+        print("First 10 Values:")
+        print(embedding[:10])
+        print("=" * 100)
+        print()
+        
+    print(f"Total Embeddings Generated : {len(embeddings)}")
+        
+    print("\n✓ Embeddings Generated Successfully")
 
 
 if __name__ == "__main__":
