@@ -24,7 +24,8 @@ class ChunkMetadataGenerator:
             "token_count": chunk["token_count"],
 
             "keywords": self.keyword_extractor.extract(
-                chunk["text"]
+                chunk["text"],
+                document_metadata["language"]
             ),
 
             "text": chunk["text"]

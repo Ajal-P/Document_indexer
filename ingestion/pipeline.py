@@ -1,12 +1,9 @@
 from pathlib import Path
-from time import perf_counter
 
 from ingestion.loader import DocumentLoader
 from ingestion.metadata import MetadataExtractor
 from ingestion.chunker import Chunker
 from ingestion.keywords import KeywordExtractor
-from ingestion.embedder import Embedder
-from ingestion.qdrant_store import QdrantStore
 
 
 # ======================================================
@@ -18,11 +15,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FILE_PATH = (
     BASE_DIR
     / "docs"
-    / "IT-policies-and-procedures-manual-template.docx"
+    / "Malayalam_article_1.docx"
 )
 
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+OUTPUT_FILE = (
+    BASE_DIR
+    / "docs"
+    / "Malayalam_chunks.txt"
+)
+
+CHUNK_SIZE = 800
+CHUNK_OVERLAP = 100
 
 
 def main():
@@ -40,10 +43,18 @@ def main():
     print("✓ Document Loaded")
 
     # ======================================================
-    # STEP 2 : Generate Metadata
+    # STEP 2 : Markdown Preview
     # ======================================================
 
-    print("\n========== STEP 2 : DOCUMENT METADATA ==========\n")
+    print("\n========== DOCUMENT MARKDOWN ==========\n")
+
+    print(document["markdown"])
+
+    # ======================================================
+    # STEP 3 : Generate Metadata
+    # ======================================================
+
+    print("\n========== STEP 3 : DOCUMENT METADATA ==========\n")
 
     metadata = MetadataExtractor().extract(
         str(FILE_PATH),
@@ -53,10 +64,10 @@ def main():
     print(metadata)
 
     # ======================================================
-    # STEP 3 : Chunking
+    # STEP 4 : Chunking
     # ======================================================
 
-    print("\n========== STEP 3 : CHUNKING ==========\n")
+    print("\n========== STEP 4 : CHUNKING ==========\n")
 
     chunker = Chunker(
         chunk_size=CHUNK_SIZE,
@@ -68,132 +79,53 @@ def main():
     print(f"Total Chunks : {len(chunks)}")
 
     # ======================================================
-    # STEP 4 : Keyword Extraction
+    # STEP 5 : Keyword Extraction
     # ======================================================
 
-    print("\n========== STEP 4 : KEYWORD EXTRACTION ==========\n")
+    print("\n========== STEP 5 : KEYWORDS ==========\n")
 
     keyword_extractor = KeywordExtractor()
-
-    for chunk in chunks:
-
-        chunk["keywords"] = keyword_extractor.extract(
-            chunk["text"]
-        )
-
-    print("✓ Keywords Generated")
+    
 
     # ======================================================
-    # STEP 5 : Load Embedding Model
+    # STEP 6 : Save Chunks to File
     # ======================================================
 
-    print("\n========== STEP 5 : LOAD EMBEDDING MODEL ==========\n")
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as file:
 
-    embedder = Embedder()
+        file.write("DOCUMENT METADATA\n")
+        file.write("=" * 80 + "\n")
+        file.write(str(metadata))
+        file.write("\n\n")
 
-    print("✓ BGE-M3 Loaded")
+        for chunk in chunks:
 
-    # ======================================================
-    # STEP 6 : Connect Qdrant
-    # ======================================================
+            keywords = keyword_extractor.extract(
+                chunk["text"],
+                metadata["language"]
+            )
 
-    print("\n========== STEP 6 : CONNECT QDRANT ==========\n")
+            print("=" * 80)
+            print(f"Chunk : {chunk['chunk_index']}")
+            print(f"Characters : {chunk['character_count']}")
+            print(f"Tokens     : {chunk['token_count']}")
+            print(f"Keywords   : {keywords}")
+            print("=" * 80)
+            print(chunk["text"])
+            print()
 
-    store = QdrantStore()
+            file.write("=" * 80 + "\n")
+            file.write(f"Chunk : {chunk['chunk_index']}\n")
+            file.write(f"Characters : {chunk['character_count']}\n")
+            file.write(f"Tokens     : {chunk['token_count']}\n")
+            file.write(f"Keywords   : {keywords}\n")
+            file.write("-" * 80 + "\n")
+            file.write(chunk["text"])
+            file.write("\n\n")
 
-    print("✓ Connected")
+    print(f"\n✓ Chunks saved to:\n{OUTPUT_FILE}")
 
-    # ======================================================
-    # STEP 7 : Check Duplicate Document
-    # ======================================================
-
-    print("\n========== STEP 7 : CHECK DOCUMENT ==========\n")
-
-    if store.document_exists(metadata["document_hash"]):
-
-        print("Document already indexed.")
-
-        return
-
-    print("Document not found in Qdrant.")
-
-    # ======================================================
-    # STEP 8 : Generate Embeddings & Build Points
-    # ======================================================
-
-    print("\n========== STEP 8 : BUILD POINTS ==========\n")
-
-    points = []
-
-    for chunk in chunks:
-
-        start = perf_counter()
-
-        embedding = embedder.embed(
-            chunk["text"]
-        )
-
-        elapsed = perf_counter() - start
-
-        payload = {
-
-            **metadata,
-
-            "chunk_index": chunk["chunk_index"],
-
-            "character_count": chunk["character_count"],
-
-            "token_count": chunk["token_count"],
-
-            "keywords": chunk["keywords"],
-
-            "text": chunk["text"]
-
-        }
-
-        point = store.build_point(
-            embedding=embedding,
-            payload=payload
-        )
-
-        points.append(point)
-
-        print(
-            f"Chunk {chunk['chunk_index']:>3} | "
-            f"Tokens : {chunk['token_count']:>4} | "
-            f"Embedding : {elapsed:.3f}s"
-        )
-
-    print(f"\nTotal Points Built : {len(points)}")
-
-    # ======================================================
-    # STEP 9 : Store in Qdrant
-    # ======================================================
-
-    print("\n========== STEP 9 : UPSERT ==========\n")
-
-    store.insert_points(points)
-
-    print("✓ Successfully Stored")
-
-    # ======================================================
-    # STEP 10 : Collection Information
-    # ======================================================
-
-    print("\n========== STEP 10 : COLLECTION ==========\n")
-
-    info = store.collection_info()
-
-    print(info)
-
-    # ======================================================
-    # STEP 11 : Verify Stored Data
-    # ======================================================
-
-    print("\n========== STEP 11 : VERIFY ==========\n")
-
-
-    print("\n✓ Pipeline Completed Successfully")
+    print("\n✓ Chunking & Keyword Extraction Completed Successfully")
 
 
 if __name__ == "__main__":

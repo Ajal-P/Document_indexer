@@ -6,20 +6,23 @@ class Chunker:
 
     def __init__(
         self,
-        chunk_size: int = 900,  #800, 1000,
-        chunk_overlap: int = 150,  #100, 200,
+        chunk_size: int = 800,  #900, 1000,
+        chunk_overlap: int = 100,  #150, 200,
     ):
 
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=[
-                "\n\n",
-                "\n",
-                ". ",
-                "? ",
-                "! ",
-                " "
+            separators = [
+             "\n\n",
+              "\n",
+              ". ",
+              "? ",
+              "! ",
+              "।",      # Devanagari danda (Hindi, Marathi, Nepali, etc.)
+              "॥",      # Double danda
+              " ",
+              "",
             ]
         )
 

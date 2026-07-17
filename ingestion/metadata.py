@@ -1,17 +1,35 @@
 from pathlib import Path
 import hashlib
 from datetime import datetime
-from lingua import LanguageDetectorBuilder
+
+import langid
 
 
 class MetadataExtractor:
+
     def __init__(self):
+        # Restrict to languages you expect (optional)
+        langid.set_languages([
+            "en",
+            "ml",
+            "hi",
+            "ta",
+            "kn",
+        ])
 
-        self.detector = LanguageDetectorBuilder.from_all_languages().build()
+    def detect_language(self, text: str) -> str:
 
-    def extract(self, file_path: str, text: str):
+        language, _ = langid.classify(text)
 
-        language = self.detector.detect_language_of(text)
+        return language
+
+    def extract(
+        self,
+        file_path: str,
+        text: str,
+    ):
+
+        language = self.detect_language(text)
 
         return {
 
@@ -21,14 +39,12 @@ class MetadataExtractor:
                 text.encode("utf-8")
             ).hexdigest(),
 
-            "language": language.iso_code_639_1.name.lower()
-            if language
-            else "unknown",
+            "language": language,
 
             "indexed_at": datetime.utcnow().isoformat(),
 
             "source": "local",
 
-            "version": 1
+            "version": 1,
 
         }
