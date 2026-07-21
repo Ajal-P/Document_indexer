@@ -129,7 +129,7 @@ class QdrantStore:
 
     def get_points(
         self,
-        limit=5,
+        limit=8,
     ):
 
         points, _ = self.client.scroll(

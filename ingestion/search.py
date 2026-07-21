@@ -23,7 +23,7 @@ def main():
 
         results = store.search(
             query_vector,
-            limit=5,
+            limit=8,
         )
 
         print("\nTop Results\n")

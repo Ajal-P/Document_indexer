@@ -17,8 +17,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FILE_PATH = (
     BASE_DIR
     / "docs"
-    / "Malayalam_article_1.docx"
+    / "hindi-hi.pdf"
 )
+
+OCR_LANGUAGE = "hi"
 
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 100
