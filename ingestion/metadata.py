@@ -15,6 +15,7 @@ class MetadataExtractor:
             "hi",
             "ta",
             "kn",
+            "te",
         ])
 
     def detect_language(self, text: str) -> str:

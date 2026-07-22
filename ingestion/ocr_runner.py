@@ -18,6 +18,7 @@ LANGUAGE_MAP = {
     "ml": "mal+eng",
     "ta": "tam+eng",
     "kn": "kan+eng",
+    "te": "tel+eng",
 }
 
 langid.set_languages([
@@ -26,6 +27,7 @@ langid.set_languages([
     "ml",
     "ta",
     "kn",
+    "te",
 ])
 
 
@@ -33,7 +35,7 @@ def detect_language(first_page):
 
     preview = pytesseract.image_to_string(
         first_page,
-        lang="eng+hin+mal+tam+kan",
+        lang="eng+hin+mal+tam+kan+tel",
         config="--oem 3 --psm 6",
     )
 

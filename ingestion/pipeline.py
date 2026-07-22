@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FILE_PATH = (
     BASE_DIR
     / "docs"
-    / "hindi-hi.pdf"
+    / "telugu_te.pdf"
 )
 
 OCR_LANGUAGE = "hi"
@@ -181,7 +181,6 @@ def main():
 
     print(f"✓ Total Points in Collection : {store.count_points()}")
     print("\n✓ Pipeline Completed Successfully")
-
 
 if __name__ == "__main__":
     main()

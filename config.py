@@ -8,7 +8,7 @@ DEVICE = "cpu"
 VECTOR_SIZE = 1024
 BATCH_SIZE = 32
 
-COLLECTION_NAME = "documents_v5"
+COLLECTION_NAME = "documents_v6"
 
 QDRANT_HOST = "localhost"
 QDRANT_PORT = 6333

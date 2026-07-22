@@ -4,6 +4,10 @@ from docling.document_converter import DocumentConverter
 
 from ingestion.ocr import extract_if_needed
 
+import unicodedata
+
+import re
+
 
 class DocumentLoader:
 
@@ -48,6 +52,12 @@ class DocumentLoader:
             except Exception as e:
 
                 print(f"OCR failed: {e}")
+
+        # Normalize Unicode
+        text = unicodedata.normalize("NFC", text)
+
+        # Collapse repeated spaces/tabs (preserve paragraph breaks)
+        text = re.sub(r"[ \t]+", " ", text)
 
         return {
             "filename": Path(file_path).name,
