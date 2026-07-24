@@ -17,7 +17,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FILE_PATH = (
     BASE_DIR
     / "docs"
-    / "telugu_te.pdf"
+    / "Hindi Vyakaran & Rachna.pdf"
 )
 
 OCR_LANGUAGE = "hi"
@@ -52,6 +52,24 @@ def main():
     )
 
     print(metadata)
+
+    # ======================================================
+    # STEP 2.5 : SAVE PROCESSED TEXT
+    # ======================================================
+
+    print("\n========== STEP 2.5 : SAVE PROCESSED TEXT ==========\n")
+
+    output_dir = Path("processed")
+    output_dir.mkdir(exist_ok=True)
+
+    stem = Path(document["filename"]).stem
+
+    (output_dir / f"{stem}.txt").write_text(
+        document["text"],
+        encoding="utf-8",
+        )
+
+    print("✓ Processed text saved")
 
     # ======================================================
     # STEP 3 : Chunking

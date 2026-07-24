@@ -1,12 +1,10 @@
 from pathlib import Path
+import re
+import unicodedata
 
 from docling.document_converter import DocumentConverter
 
 from ingestion.ocr import extract_if_needed
-
-import unicodedata
-
-import re
 
 
 class DocumentLoader:
@@ -56,7 +54,7 @@ class DocumentLoader:
         # Normalize Unicode
         text = unicodedata.normalize("NFC", text)
 
-        # Collapse repeated spaces/tabs (preserve paragraph breaks)
+        # Collapse repeated spaces/tabs
         text = re.sub(r"[ \t]+", " ", text)
 
         return {
@@ -64,4 +62,6 @@ class DocumentLoader:
             "document": document,
             "markdown": markdown,
             "text": text,
-        }
+    }
+
+    

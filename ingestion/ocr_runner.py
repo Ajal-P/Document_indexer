@@ -59,7 +59,7 @@ def main():
 
     pages = convert_from_path(
         pdf_path,
-        dpi=400,
+        dpi=300,
     )
 
     language = detect_language(pages[0])
